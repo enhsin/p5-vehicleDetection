@@ -265,7 +265,10 @@ def find_cars(img, mask, boxes, scales, clf, scaler, color_space='RGB',
                     hist_feat=True, hog_feat=True):
 
     on_windows = []
-    for box, scale in zip(boxes, scales):
+    found = np.zeros_like(mask).astype(np.int)
+    for i in range(len(scales)):
+        box = boxes[i]
+        scale = scales[i]
         nx = np.int((box[1][0] - box[0][0])/scale)
         ny = np.int((box[1][1] - box[0][1])/scale)
         img_tosearch = cv2.resize(img[box[0][1]:box[1][1], box[0][0]:box[1][0]], (nx, ny))
@@ -314,6 +317,7 @@ def find_cars(img, mask, boxes, scales, clf, scaler, color_space='RGB',
                 ybottom = ypos1*pix_per_cell
                 ybox_top = np.int(ytop*scale + box[0][1])
                 ybox_bottom = np.int(ybottom*scale + box[0][1])
+                # if the cell is outside of the region of interest
                 if mask[(ybox_top+ybox_bottom)//2,(xbox_left+xbox_right)//2] == 0:
                     continue
 
@@ -366,23 +370,33 @@ def transform_single(w,x_size,y_size):
 def transform(windows,x_size,y_size):
     return [transform_single(w,x_size,y_size) for w in windows]
 
-def threshold_boxes(draw_img, img, hot_windows, thresh_hi, thresh_lo, x, y, color=(0, 0, 255), thick=6):
-    heat = np.zeros_like(img).astype(np.float)
+def threshold_boxes(draw_img, img, hot_windows, thresh_hi, thresh_lo, x, y, color=(0, 0, 255), thick=6, vis=False):
+    heat = np.zeros_like(img[:,:,0]).astype(np.float)
     heat = add_heat(heat,hot_windows)
+    if vis:
+        heatmap = np.copy(heat)
+        label_img = np.copy(img)
     heat[heat<=thresh_lo] = 0
     labels = label(heat)
     for car_number in range(1, labels[1]+1):
         # Find pixels with each car_number label value
         nonzero = (labels[0] == car_number).nonzero()
-        if np.max(heat[nonzero]) < thresh_hi:
+        max_count = np.max(heat[nonzero])
+        if max_count < thresh_hi:
             continue
         # Identify x and y values of those pixels
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
         # Define a bounding box based on min/max x and y
         bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        if vis:
+            cv2.rectangle(heatmap, bbox[0], bbox[1], np.max(heatmap), thick)
+            cv2.rectangle(label_img, bbox[0], bbox[1], color, thick)
         bbox = transform_single(bbox,x,y)
         cv2.rectangle(draw_img, bbox[0], bbox[1], color, thick)
-    return draw_img
+    if not vis:
+        return draw_img
+    else:
+        return draw_img, heatmap, label_img
 
 
