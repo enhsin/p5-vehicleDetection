@@ -19,57 +19,52 @@ The goals / steps of this project are the following:
 
 I use the training set provided by the [project](https://github.com/udacity/CarND-Vehicle-Detection) ([vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip)) to train my SVM classifier. I choose `sklearn.svm.svc` with RBF kernel because the test score is better than the one fitted with linear kernel `sklearn.svm.LinearSVC`. I extract spatial binary, color histogram, and HOG features using `extract_features` function defined in `lesson_functions.py`. The combined features are normalized by `sklearn.preprocessing.StandardScaler`. The whole training process is described in cell #2 in my notebook, which will produce a trained SVM classifier.  
 
-Here are examples of HOG features in `Y`, `Cr` and `Cb` channels with (`orientations`, `pixels_per_cell`, `cells_per_block`) set to (9, 8, 1).
+Here are examples of HOG features in `Y`, `Cr` and `Cb` channels with (`orientation`, `pix_per_cell`, `cell_per_block`) set to (9, 8, 1).
 ![alt text](./output_images/hog.png "HOG")
-I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I also tried `HSL` color space, the one I used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives. 
+I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I also tried `HSL` color space, the one I used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives when processing the video stream. 
 
-Channel `Y` appear 
-`orientations`, `pixels_per_cell`, and `cells_per_block`
+Channel `Cr` doesn't appear to be useful to detect the shape of the object, so I only use Channel `Y` for the HOG feature in the final pipeline.
 
-#### Histogram of Oriented Gradients (HOG)
-
-
-####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
-
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
-
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
-
-![alt text][image1]
-
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
-
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
-
-
-![alt text][image2]
-
-####2. Explain how you settled on your final choice of HOG parameters.
-
-I tried various combinations of parameters and...
-
-####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
-
-I trained a linear SVM using...
-
-#### spatial binary, color histogram, and HOG features
+Here is the visualization of all the feature vectors with my final choice of parameters.
 ![alt text](./output_images/features.png "features")
+
+Here are the final parameters.
+
+|Spatial Parameter| Value |
+|-----------------|-------|
+|channel          |Y,Cr,Cb|
+|spatial_size     |8      |
+
+spatial feature size = 8x8x3 = 192
+
+|Color Parameter  | Value |
+|-----------------|-------|
+|channel          |Cr,Cb  |
+|hist_bins        |16     |
+
+color feature size = 16x2 = 32
+
+|HOG Parameter    | Value |
+|-----------------|-------|
+|channel          |Y      |
+|orientation      |4      |
+|pix_per_cell     |8      | 
+|cell_per_block   |1      | 
+
+HOG feature size = 4x(64/8)x(64/8) = 256
+
+Total feature size = 480
+
+`pix_per_cell` is set to 8 because the image in the training set 64x64 in size and I want all the pixels to be used. This will give 64 cells. `cell_per_block` is fixed at 1 because I prefer a smaller set of features to reduce the prediction time. I looped through various combinations of `orientation`, `hist_bins`, and `spatial_size` (cell #3). They all gave an accuracy about 0.99. I selected (`orientation`, `hist_bins`, `spatial_size`) = (4, 16, 8) because of the speed and performance. Some models will take 2-3 hours to process the whole video and the one I chose takes 23 minutes on the virtual machine of my windows laptop.  
 
 
 ### Sliding Window Search
 
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+I used the method taught in Session 35: Hog Sub-sampling Window Search to search for cars. The code is described in `lesson_functions.find_cars`. `cells_per_step` is set to 2 (75% of overlapping) to increase the chance of detection and to use multiple detections to reject false positives. The advantage of this method is to extract HOG features once and to avoid the expensive multiple HOG calculations. I run this function at two scales (0.85, 1.8) to detect both near and far objects. A mask (defined in cell #6) is also used to focus on the left two lanes.
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+Here are examples of the detection (blue boxes). There are two kinds of blue boxes, big and small. The yellow boxes mark the final detection. 
 
-
-####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
-
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
-
-![alt text](./output_images/window.png "window")
-
-![alt text](./output_images/window_small.png "window_small")
+![alt text](./output_images/window.png "window") ![alt text](./output_images/window_small.png "window_small")
 
 ---
 
