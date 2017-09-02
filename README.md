@@ -2,6 +2,7 @@
 
 My project includes the following files:
 * pipeline.ipynb - Jupyter notebook to process the original video
+* lesson_functions.py - helper functions used by the pipeline. Most of them are from the lession.
 * video.mp4 - output video with vehicles marked with yellow boxes
 * README.md - summarizing the results
 * svc_c100.pkl - trained SVM model
@@ -15,9 +16,18 @@ The goals / steps of this project are the following:
 
 ---
 ### Feature extraction
+
+I use the training set provided by the [project](https://github.com/udacity/CarND-Vehicle-Detection) ([vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip)) to train my SVM classifier. I choose `sklearn.svm.svc` with RBF kernel because the test score is better than the one fitted with linear kernel `sklearn.svm.LinearSVC`. I extract spatial binary, color histogram, and HOG features using `extract_features` function defined in `lesson_functions.py`. The combined features are normalized by `sklearn.preprocessing.StandardScaler`. The whole training process is described in cell #2 in my notebook, which will produce a trained SVM classifier.  
+
+Here are examples of HOG features in `Y`, `Cr` and `Cb` channels with (`orientations`, `pixels_per_cell`, `cells_per_block`) set to (9, 8, 1).
+![alt text](./output_images/hog.png "HOG")
+I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I also tried `HSL` color space, the one I used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives. 
+
+Channel `Y` appear 
+`orientations`, `pixels_per_cell`, and `cells_per_block`
+
 #### Histogram of Oriented Gradients (HOG)
 
-![alt text](./output_images/hog.png "HOG")
 
 ####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
