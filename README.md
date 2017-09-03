@@ -17,7 +17,7 @@ The goals / steps of this project are the following:
 ---
 ### Feature extraction
 
-I use the training set provided by the [project](https://github.com/udacity/CarND-Vehicle-Detection) ([vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip)) to train my SVM classifier. I choose `sklearn.svm.svc` with RBF kernel because the test score is better than the one fitted with linear kernel `sklearn.svm.LinearSVC`. I extract spatial binary, color histogram, and HOG features using `extract_features` function defined in `lesson_functions.py`. The combined features are normalized by `sklearn.preprocessing.StandardScaler`. The whole training process is described in cell #2 in my notebook, which will produce a trained SVM classifier.  
+I use the training set provided by the [project](https://github.com/udacity/CarND-Vehicle-Detection) ([vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip)) to train my SVM classifier. I choose `sklearn.svm.svc()` with RBF kernel because the test score is better than the one fitted with linear kernel `sklearn.svm.LinearSVC()`. I extract spatial binary, color histogram, and HOG features using `extract_features` function defined in `lesson_functions.py`. The combined features are normalized by `sklearn.preprocessing.StandardScaler()`. The whole training process is described in cell #2 in my notebook, which will produce a trained SVM classifier.  
 
 Here are examples of HOG features in `Y`, `Cr` and `Cb` channels with (`orientation`, `pix_per_cell`, `cell_per_block`) set to (9, 8, 1).
 ![alt text](./output_images/hog.png "HOG")
@@ -55,16 +55,28 @@ HOG feature size = 4x(64/8)x(64/8) = 256
 
 Total feature size = 480
 
-`pix_per_cell` is set to 8 because the image in the training set 64x64 in size and I want all the pixels to be used. This will give 64 cells. `cell_per_block` is fixed at 1 because I prefer a smaller set of features to reduce the prediction time. I looped through various combinations of `orientation`, `hist_bins`, and `spatial_size` (cell #3). They all gave an accuracy about 0.99. I selected (`orientation`, `hist_bins`, `spatial_size`) = (4, 16, 8) because of the speed and performance. Some models will take 2-3 hours to process the whole video and the one I chose takes 23 minutes on the virtual machine of my windows laptop.  
+`pix_per_cell` is set to 8 because the image in the training set 64x64 in size and I want all the pixels to be used. This will give 64 cells. `cell_per_block` is fixed at 1 because I prefer a smaller set of features to reduce the prediction time. I loop through various combinations of `orientation`, `hist_bins`, and `spatial_size` (cell #3). They all give an accuracy about 0.99. I select (`orientation`, `hist_bins`, `spatial_size`) = (4, 16, 8) because of the speed and performance. Some models will take 2-3 hours to process the whole video and the one I choose takes 23 minutes on the virtual machine of my windows laptop.  
 
 
 ### Sliding Window Search
 
-I used the method taught in Session 35: Hog Sub-sampling Window Search to search for cars. The code is described in `lesson_functions.find_cars`. `cells_per_step` is set to 2 (75% of overlapping) to increase the chance of detection and to use multiple detections to reject false positives. The advantage of this method is to extract HOG features once and to avoid the expensive multiple HOG calculations. I run this function at two scales (0.85, 1.8) to detect both near and far objects. A mask (defined in cell #6) is also used to focus on the left two lanes.
+I use the method taught in Session 35 (Hog Sub-sampling Window Search) to search for cars. The code is described in `lesson_functions.find_cars()`. `cells_per_step` is set to 2 (75% of overlapping) to increase the chance of detection and to use multiple detections to reject false positives. The advantage of this method is to extract HOG features once and to avoid the expensive multiple HOG calculations. I run this function at two scales (0.85, 1.8) to detect both near and far objects. A mask (defined in cell #6) is also used to focus on the right two lanes.
 
 Here are examples of the detection (blue boxes). There are two kinds of blue boxes, big and small. The yellow boxes mark the final detection. 
 
 ![alt text](./output_images/window.png "window") ![alt text](./output_images/window_small.png "window_small")
+
+
+### Multiple detections
+
+I apply the method in Session 37 (Multiple Detections & False Positives) to combine multiple detections to produce the bounding box of the detected vehicle. The code is at `lesson_functions.threshold_boxes()`. I create a heatmap from multiple detections of a single frame and use `scipy.ndimage.measurements.label()` to label connected components. A slight modification to the code used in the lesson is that I use two thresholds: `thresh_hi`  and `thresh_lo`. The maximum count of a connected component (number of detection) must be equal or greater than `thresh_hi` to be consider as a real detection. Pixels with counts greater than `thresh_lo` are used to mark the final bounding box. (`thresh_hi`, `thresh_lo`) is set to (4,1). 
+
+Here are the images of the raw input data (left), the heatmap of the detection (middle), and the final processed image (right). The bounding box is drawn with thick lines. The thin blue box is the individual detection.
+
+![alt text](./output_images/heat.png "heat")
+
+The input image has been cropped because that is the region of interest. I flip the image so that features can be extracted starting from the lower right corner instead of the upper left. If the image is not flipped, there could be regions on the right and on the bottom unanalyzed and we want to detect cars entering into the frame early. 
+
 
 ---
 
@@ -87,10 +99,6 @@ Here's an example result showing the heatmap from a series of frames of video, t
 ### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
 ![alt text][image6]
 
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-![alt text](./output_images/heat.png "heat")
 
 
 
