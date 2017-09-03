@@ -88,7 +88,7 @@ The pipeline to process each frame of the project video is described in cell #7.
 
 * My model can't identify the car entering the frame when it sees a single front wheel (e.g., at t=5 and 27s). Including these types of images to the training set (and using more complicated models such as gradient boosting trees) should help the model detect the car early. 
 
-* The bounding box is just a rough estimate of other vehicles’ positions. It doesn’t trace the contour line of the vehicle. I think knowing exactly where the other cars are is very useful to avoid collisions. I guess techniques like Sobel could be used to detect the edge.
+* The bounding box is just a **rough** estimate of other vehicles’ positions. It doesn’t trace the contour line of the vehicle and the peak of the heatmap doesn't represent the center of the car. I think knowing exactly where the other cars are is very useful to avoid collisions. I guess techniques like Sobel could be used to detect the edge of the car.
 
 * My pipeline can not distinguish two cars next to each other (t=35s) because I didn’t implement any mechanism to keep track of all the vehicles. If the number of detected vehicles is known, methods such as [spectral clustering](http://www.scipy-lectures.org/advanced/image_processing/#segmentation) can be used to segment the detections, which can give a more accurate estimate of the vehicle’ location.   
  
