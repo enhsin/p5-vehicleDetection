@@ -24,7 +24,7 @@ Here are examples of HOG features in `Y`, `Cr` and `Cb` channels with (`orientat
 
 I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I have tried `HSL` color space, which was used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives when it applys to the video stream. 
 
-Channel `Cr` doesn't appear to be useful to detect the shape of the object, so I only use Channel `Y` for the HOG feature in the final pipeline.
+Channels `Cr` and `Cb` don't appear to be useful to detect the shape of non-vehicle objects, so I only use Channel `Y` for the HOG feature in the final pipeline.
 
 Here is the visualization of all the feature vectors with my final choice of parameters.
 ![alt text](./output_images/features.png "features")
@@ -56,21 +56,21 @@ HOG feature size = 4x(64/8)x(64/8) = 256
 
 Total feature size = 480
 
-`pix_per_cell` is set to 8 because the images in the training set are 64x64 in size and I want all the pixels to be used (no remainder). This will give 64 cells. `cell_per_block` is fixed at 1 because I prefer a smaller set of features to reduce the prediction time. I loop through various combinations of `orientation`, `hist_bins`, and `spatial_size` (cell #3). They all give an accuracy about 0.99. I select (`orientation`, `hist_bins`, `spatial_size`) = (4, 16, 8) because of the speed and performance. Some models will take 2-3 hours to process the whole video and the one I choose takes 23 minutes on the virtual machine of my windows laptop. 
+`pix_per_cell` is set to 8 because the images in the training set are 64x64 in size and I want all the pixels to be used (no remainder). This will give 64 cells. `cell_per_block` is fixed at 1 because I prefer a smaller set of features to reduce the prediction time. I loop through various combinations of `orientation`, `hist_bins`, and `spatial_size` (cell #3). They all give an accuracy about 0.99. I select (`orientation`, `hist_bins`, `spatial_size`) = (4, 16, 8) because of the speed and performance. Some models will take 2-3 hours to process the whole video and the one I choose takes 23 minutes on the virtual machine of my windows laptop. ~~I really don't want my laptop to run for several hours in a 100F home without AC (recently moved to a new city).~~ 
 
 ### Sliding Window Search
 
-I use the method taught in Session 35 (Hog Sub-sampling Window Search) to search for cars. The code is described in `lesson_functions.find_cars()`. `cells_per_step` is set to 2 (75% of overlapping) to increase the chance of detection and to use multiple detections to reject false positives. The advantage of this method is to extract HOG features once and to avoid the expensive multiple HOG calculations. I run this function at two scales (0.85, 1.8) to detect both near and far objects. A mask (defined in cell #6) is also used to focus on the right two lanes.
+I use the method taught in Session 35 (Hog Sub-sampling Window Search) to search for cars. The code is described in `lesson_functions.find_cars()`. `cells_per_step` is set to 2 (75% of overlapping) to increase the chance of detection and to use multiple detections to reject false positives. The advantage of this method is to extract HOG features once and to avoid the expensive repeating HOG calculation. I run this function at two scales (0.85, 1.8) to detect both near and far objects. A mask (defined in cell #6) is also used to focus on the right two lanes.
 
 Here are examples of sliding window detections (blue boxes). There are two kinds of blue boxes, big and small (they are overlapping). The yellow boxes are the final detection. 
 
 ![alt text](./output_images/window.png "window") ![alt text](./output_images/window_small.png "window_small")
 
-There are more examples of the detection shown in cell #8.
+More examples of the detection on test images are shown in cell #8.
 
 ### Multiple detections
 
-I apply the method in Session 37 (Multiple Detections & False Positives) to combine multiple detections to produce the bounding box of the detected vehicle. The code is at `lesson_functions.threshold_boxes()`. I create a heatmap from multiple detections of a single frame and use `scipy.ndimage.measurements.label()` to label connected components. I use two thresholds, `thresh_hi`  and `thresh_lo` to reject false positives and to find the bounding box. The maximum count of a connected component (number of detection) must be equal or greater than `thresh_hi` to be considered as a real detection. The heatmap pixels with counts greater than `thresh_lo` are used to mark the final bounding box. I set `thresh_hi`= 4 and `thresh_lo` = 1. 
+I apply the method in Session 37 (Multiple Detections & False Positives) to combine multiple detections and produce the bounding box of the detected vehicle. The code is at `lesson_functions.threshold_boxes()`. I create a heatmap from sliding window detections of a single frame and use `scipy.ndimage.measurements.label()` to label connected components. I use two thresholds, `thresh_hi`  and `thresh_lo` to reject false positives and to find the bounding box. The maximum count of a connected component (number of detection) must be equal or greater than `thresh_hi` to be considered as a real detection. The heatmap pixels with counts greater than `thresh_lo` are used to mark the final bounding box. I set `thresh_hi`= 4 and `thresh_lo` = 1. 
 
 Here are the images of the raw input data (left), the heatmap of the sliding window detection (middle), and the final processed image (right). The bounding box is drawn with thick lines. The blue boxes are sliding window detections.
 
@@ -90,5 +90,5 @@ The pipeline to process each frame of the project video is described in cell #7.
 
 * The bounding box is just a rough estimate of other vehicles’ positions. It doesn’t trace the contour line of the vehicle. I think knowing exactly where the other cars are is very useful to avoid collisions. I guess techniques like Sobel could be used to detect the edge.
 
-* My pipeline also can not distinguish two cars next to each other (t=35s) because I didn’t implement any mechanism to keep track of all the vehicles. If the number of detected vehicles is known, methods such as [spectral clustering](http://www.scipy-lectures.org/advanced/image_processing/#segmentation) can be used to segment  the detections, which can give more accurate estimates of other vehicles’ locations.   
+* My pipeline can not distinguish two cars next to each other (t=35s) because I didn’t implement any mechanism to keep track of all the vehicles. If the number of detected vehicles is known, methods such as [spectral clustering](http://www.scipy-lectures.org/advanced/image_processing/#segmentation) can be used to segment the detections, which can give a more accurate estimate of the vehicle’ location.   
  
