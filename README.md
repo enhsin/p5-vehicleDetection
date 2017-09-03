@@ -21,7 +21,7 @@ I use the training set provided by the [project](https://github.com/udacity/CarN
 
 Here are examples of HOG features in `Y`, `Cr` and `Cb` channels with (`orientation`, `pix_per_cell`, `cell_per_block`) set to (9, 8, 1).
 ![alt text](./output_images/hog.png "HOG")
-I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I also tried `HSL` color space, the one I used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives when processing the video stream. 
+I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I also tried `HSL` color space, which was used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives when processing the video stream. 
 
 Channel `Cr` doesn't appear to be useful to detect the shape of the object, so I only use Channel `Y` for the HOG feature in the final pipeline.
 
@@ -62,45 +62,25 @@ Total feature size = 480
 
 I use the method taught in Session 35 (Hog Sub-sampling Window Search) to search for cars. The code is described in `lesson_functions.find_cars()`. `cells_per_step` is set to 2 (75% of overlapping) to increase the chance of detection and to use multiple detections to reject false positives. The advantage of this method is to extract HOG features once and to avoid the expensive multiple HOG calculations. I run this function at two scales (0.85, 1.8) to detect both near and far objects. A mask (defined in cell #6) is also used to focus on the right two lanes.
 
-Here are examples of the detection (blue boxes). There are two kinds of blue boxes, big and small. The yellow boxes mark the final detection. 
+Here are examples of the detection (blue boxes). There are two kinds of blue boxes, big and small (they are overlapping). The yellow boxes are the final detection. 
 
 ![alt text](./output_images/window.png "window") ![alt text](./output_images/window_small.png "window_small")
 
+There are more examples of the detection shown in cell #8.
 
 ### Multiple detections
 
-I apply the method in Session 37 (Multiple Detections & False Positives) to combine multiple detections to produce the bounding box of the detected vehicle. The code is at `lesson_functions.threshold_boxes()`. I create a heatmap from multiple detections of a single frame and use `scipy.ndimage.measurements.label()` to label connected components. A slight modification to the code used in the lesson is that I use two thresholds: `thresh_hi`  and `thresh_lo`. The maximum count of a connected component (number of detection) must be equal or greater than `thresh_hi` to be consider as a real detection. Pixels with counts greater than `thresh_lo` are used to mark the final bounding box. (`thresh_hi`, `thresh_lo`) is set to (4,1). 
+I apply the method in Session 37 (Multiple Detections & False Positives) to combine multiple detections to produce the bounding box of the detected vehicle. The code is at `lesson_functions.threshold_boxes()`. I create a heatmap from multiple detections of a single frame and use `scipy.ndimage.measurements.label()` to label connected components. A slight modification to the code used in the lesson is that I use two thresholds, `thresh_hi`  and `thresh_lo`. The maximum count of a connected component (number of detection) must be equal or greater than `thresh_hi` to be considered as a real detection. The heatmap pixels with counts greater than `thresh_lo` are used to mark the final bounding box. I set `thresh_hi`= 4 and `thresh_lo` = 1. 
 
-Here are the images of the raw input data (left), the heatmap of the detection (middle), and the final processed image (right). The bounding box is drawn with thick lines. The thin blue box is the individual detection.
+Here are the images of the raw input data (left), the heatmap of the detection (middle), and the final processed image (right). The bounding box is drawn with thick lines. The blue boxes are sliding window detections.
 
 ![alt text](./output_images/heat.png "heat")
 
-The input image has been cropped because that is the region of interest. I flip the image so that features can be extracted starting from the lower right corner instead of the upper left. If the image is not flipped, there could be regions on the right and on the bottom unanalyzed and we want to detect cars entering into the frame early. 
-
-
----
+The input image has been cropped because that is the region of interest. I flip the image so that features can be extracted starting from the lower right corner instead of the upper left. If the image is not flipped, there could be pixels on the right and on the bottom unanalyzed (depending on `scales`, `pix_per_cell`, `cell_per_block` or `cells_per_step`) and we want to detect cars entering into the frame early. 
 
 ### Video Implementation
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./video.mp4)
-
-
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
-
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
-
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
-
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-
-
+The pipeline to process each frame of the project video is described in cell #7. Here is the output [video](./video.mp4). The yellow box is the final detection and blue boxes are sliding window detections. False positives are rejected by setting the proper `thresh_hi` (see above). I also set `class_weight` = {0:0.9, 1:0.1} (in `sklearn.svm.svc()`) to give non-vehicles more weights and to change the decision boundary a little bit.
 
 ---
 
