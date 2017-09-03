@@ -17,11 +17,11 @@ The goals / steps of this project are the following:
 ---
 ### Feature extraction
 
-I use the training set provided by the [project](https://github.com/udacity/CarND-Vehicle-Detection) ([vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip)) to train my SVM classifier. I choose `sklearn.svm.svc()` with RBF kernel because the test score is better than the one fitted with linear kernel `sklearn.svm.LinearSVC()`. I extract spatial binary, color histogram, and HOG features using `extract_features` function defined in `lesson_functions.py`. The combined features are normalized by `sklearn.preprocessing.StandardScaler()`. The whole training process is described in cell #2 in my notebook, which will produce a trained SVM classifier.  
+I use the training set ([vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip)) provided by the [project](https://github.com/udacity/CarND-Vehicle-Detection)  to train my SVM classifier. I choose `sklearn.svm.svc()` with RBF kernel because the test score is better than the one with the linear kernel. I extract spatial binary, color histogram, and HOG features using `extract_features` function defined in `lesson_functions.py`. The combined features are normalized by `sklearn.preprocessing.StandardScaler()`. The whole training process is described in cell #2 of my notebook, which will produce a trained SVM classifier.  
 
 Here are examples of HOG features in `Y`, `Cr` and `Cb` channels with (`orientation`, `pix_per_cell`, `cell_per_block`) set to (9, 8, 1).
 ![alt text](./output_images/hog.png "HOG")
-I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I also tried `HSL` color space, which was used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives when processing the video stream. 
+I choose `YCrCb` color space because it preserves the color under varying illumination conditions ([this](http://www.learnopencv.com/color-spaces-in-opencv-cpp-python/) is a good article to read). I have tried `HSL` color space, which was used in [Project 4](https://github.com/enhsin/p4-advancedLaneLines) to dectect lane lines. It seems to give more false negatives when it applys to the video stream. 
 
 Channel `Cr` doesn't appear to be useful to detect the shape of the object, so I only use Channel `Y` for the HOG feature in the final pipeline.
 
@@ -55,7 +55,7 @@ HOG feature size = 4x(64/8)x(64/8) = 256
 
 Total feature size = 480
 
-`pix_per_cell` is set to 8 because the image in the training set 64x64 in size and I want all the pixels to be used. This will give 64 cells. `cell_per_block` is fixed at 1 because I prefer a smaller set of features to reduce the prediction time. I loop through various combinations of `orientation`, `hist_bins`, and `spatial_size` (cell #3). They all give an accuracy about 0.99. I select (`orientation`, `hist_bins`, `spatial_size`) = (4, 16, 8) because of the speed and performance. Some models will take 2-3 hours to process the whole video and the one I choose takes 23 minutes on the virtual machine of my windows laptop.  
+`pix_per_cell` is set to 8 because the images in the training set are 64x64 in size and I want all the pixels to be used (no remainder). This will give 64 cells. `cell_per_block` is fixed at 1 because I prefer a smaller set of features to reduce the prediction time. I loop through various combinations of `orientation`, `hist_bins`, and `spatial_size` (cell #3). They all give an accuracy about 0.99. I select (`orientation`, `hist_bins`, `spatial_size`) = (4, 16, 8) because of the speed and performance. Some models will take 2-3 hours to process the whole video and the one I choose takes 23 minutes on the virtual machine of my windows laptop.  
 
 
 ### Sliding Window Search
